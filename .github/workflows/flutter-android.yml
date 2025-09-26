@@ -9,6 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    # (اختياري) أسرار التوقيع إذا تريد AAB لاحقًا
     env:
       MY_STORE_FILE_BASE64: ${{ secrets.MY_STORE_FILE_BASE64 }}
       MY_STORE_PASSWORD:   ${{ secrets.MY_STORE_PASSWORD }}
@@ -18,53 +19,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # استخدم JDK 17 (مطلوب لـ AGP الحديثة)
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.x'
-          channel: 'stable'
-
-      # أنشئ ملفات المنصات الناقصة (android/ ...) إن لم تكن موجودة
-      - name: Ensure Android scaffolding exists
-        run: flutter create . --platforms=android
-
-      - name: Fetch packages
-        run: flutter pub get
-
-      - name: Build debug APK (unsigned)
-        run: flutter build apk --debug
-
-      - name: Upload debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
-
-      # التوقيع/الرفع للأب باندل (اختياري) — يعمل فقط اذا الأسرار موجودة
-      - name: Set up signing (optional)
-        if: ${{ env.MY_STORE_FILE_BASE64 != '' }}
-        run: |
-          mkdir -p "$HOME/keystore"
-          echo "$MY_STORE_FILE_BASE64" | base64 -d > "$HOME/keystore/keystore.jks"
-
-      - name: Build release AAB (signed if secrets exist)
-        if: ${{ env.MY_STORE_FILE_BASE64 != '' }}
-        env:
-          MY_STORE_FILE: $HOME/keystore/keystore.jks
-          MY_STORE_PASSWORD: ${{ env.MY_STORE_PASSWORD }}
-          MY_KEY_ALIAS: ${{ env.MY_KEY_ALIAS }}
-          MY_KEY_PASSWORD: ${{ env.MY_KEY_PASSWORD }}
-        run: flutter build appbundle --release
-
-      - name: Upload release AAB (if built)
-        if: ${{ env.MY_STORE_FILE_BASE64 != '' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-aab
-          path: build/app/outputs
+      # JDK 17 مطلوب ل
