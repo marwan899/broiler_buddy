@@ -8,15 +8,62 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    # (اختياري) أسرار التوقيع إذا تريد AAB لاحقًا
-    env:
-      MY_STORE_FILE_BASE64: ${{ secrets.MY_STORE_FILE_BASE64 }}
-      MY_STORE_PASSWORD:   ${{ secrets.MY_STORE_PASSWORD }}
-      MY_KEY_ALIAS:        ${{ secrets.MY_KEY_ALIAS }}
-      MY_KEY_PASSWORD:     ${{ secrets.MY_KEY_PASSWORD }}
+    timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      # JDK 17 مطلوب ل
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: 'stable'
+
+      # لو ماكو android/ أصلاً أو كان غير مدعوم، نولده
+      - name: Ensure Android scaffolding
+        run: |
+          rm -rf .metadata || true
+          flutter create . --platforms=android
+
+      - name: Flutter doctor (debug info)
+        run: flutter doctor -v
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Show tree before build
+        run: |
+          ls -la
+          ls -la android
+          ls -la lib
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+
+      - name: List outputs after build
+        run: |
+          echo "APK outputs:"
+          find build/app/outputs -maxdepth 3 -type f -print || true
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: build/app/outputs/flutter-apk/*debug*.apk
+          if-no-files-found: error
+
+      # تجميعة احتياطية: ارفع كل المخرجات حتى لو تغيّر المسار
+      - name: Upload all Android outputs (fallback)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build-outputs
+          path: build/app/outputs/**
+          if-no-files-found: warn
