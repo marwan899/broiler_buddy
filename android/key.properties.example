@@ -1,0 +1,5 @@
+# Example key.properties (if you prefer file-based secrets)
+storePassword=CHANGE_ME
+keyPassword=CHANGE_ME
+keyAlias=broilerbuddy
+storeFile=/absolute/path/to/broilerbuddy.jks
